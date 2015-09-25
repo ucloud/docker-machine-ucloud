@@ -25,6 +25,8 @@ type Driver struct {
 	Memory    int
 	DiskSpace int
 
+	PrivateIPOnly 	bool
+
 	//	SecurityGroupId string
 	//	Address         string
 	//	UHostType       string
@@ -36,6 +38,7 @@ const (
 	defaultMemory    = 1024
 	defaultDiskSpace = 20000
 	defaultRegion    = "cn-north-03"
+	defaultRetries   = 10
 )
 
 func NewDriver(hostName, artifactPath string) *Driver {
@@ -54,7 +57,7 @@ func NewDriver(hostName, artifactPath string) *Driver {
 func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 	return []mcnflag.Flag{
 		{
-			Name:   "ucloud-pulic-key",
+			Name:   "ucloud-public-key",
 			Usage:  "UCloud Public Key",
 			Value:  "",
 			EnvVar: "UCLOUD_PUBLIC_KEY",
@@ -78,7 +81,7 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 		{
 			Name:   "ucloud-region",
 			Usage:  "Region of ucloud idc",
-			Value:  "cn-north-01",
+			Value:  "cn-north-03",
 			EnvVar: "UCLOUD_REGION",
 		},
 		{
@@ -90,6 +93,10 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 			Name:  "ucloud-ssh-port",
 			Usage: "SSH port",
 			Value: 22,
+		},
+		{
+			Name: "ucloud-private-address-only",
+			Usage: "Only use a private IP address",
 		},
 	}
 }
@@ -115,10 +122,11 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	if err != nil {
 		return err
 	}
+	d.Region = region
 
 	d.PublicKey = flags.String("ucloud-public-key")
 	if d.PublicKey == "" {
-		return fmt.Errorf("UCloud driver requires the --ucloud-public-key option")
+		return fmt.Errorf("ucloud driver requires the --ucloud-public-key option")
 	}
 	log.Debugf("ucloud public key: %s", d.PublicKey)
 
@@ -132,12 +140,17 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	if len(image) == 0 {
 		image = "uimage-j4fbrn"
 	}
-
-	d.Region = region
 	d.ImageId = image
+
+	d.PrivateIPOnly = flags.Bool("ucloud-private-address-only")
+
+	d.SSHUser = strings.ToLower(flags.String("ucloud-ssh-user"))
+	if d.SSHUser == "" {
+		d.SSHUser = "root"
+	}
 	d.Password = flags.String("ucloud-user-password")
 	d.SSHPort = 22
-	d.SSHUser = strings.ToLower(flags.String("ucloud-ssh-user"))
+
 
 	return nil
 }
@@ -149,13 +162,25 @@ func (d *Driver) PreCreateCheck() error {
 func (d *Driver) Create() error {
 	log.Infof("Create UHost instance...")
 
+	if d.Password == "" {
+		return fmt.Errorf("ucloud driver requires --ucloud-user-password options.")
+	}
+	//TODO: create an keypairs when uhost api is supported, we have to use expect to
+	// create the ssh keypairs
+
+	// create uhost instance
 	hostId, err := createUHost(d.Region, d.ImageId, d.Password)
 	if err != nil {
-		log.Errorf("create UHost failed:%s", err)
+		return fmt.Errorf("create UHost failed:%s", err)
 	}
 	d.UhostID = hostId
 
-	for {
+	if !d.PrivateIPOnly {
+		//TODO: user the exist eip and security group to configure network
+		d.createUNet()
+	}
+
+	for i := 0; i < defaultRetries; i++ {
 		// get details of host
 		details, err := getHostDescription(d.Region, hostId)
 		if err != nil {
@@ -172,6 +197,8 @@ func (d *Driver) Create() error {
 
 		time.Sleep(1 * time.Second)
 	}
+
+	// TODO: install docker
 
 	return nil
 }
@@ -193,14 +220,11 @@ func (d *Driver) GetIP() (string, error) {
 }
 
 func (d *Driver) GetState() (state.State, error) {
-	//	addr := fmt.Sprintf("%s:%d", d.IPAddress, d.SSHPort)
-	//	_, err := net.DialTimeout("tcp", addr, defaultTimeout)
-	//	var st state.State
-	//	if err != nil {
-	//		st = state.Stopped
-	//	} else {
-	//		st = state.Running
-	//	}
+	log.Debugf("Driver:%+v", d)
+	log.Info("Get Uhost details")
+	if d.UhostID == "" || d.Region == "" {
+		return state.None, fmt.Errorf("region or uhost is empty")
+	}
 
 	details, err := getHostDescription(d.Region, d.UhostID)
 	if err != nil {
@@ -253,7 +277,7 @@ func (d *Driver) Stop() error {
 }
 
 func (d *Driver) Remove() error {
-	log.Debug("Restarting...")
+	log.Debug("Removing...")
 	if err := terminateUHost(d.Region, d.UhostID); err != nil {
 		return fmt.Errorf("Unable to terminate the UHost instance:%s", err)
 	}
@@ -279,7 +303,3 @@ func (d *Driver) Kill() error {
 
 	return nil
 }
-
-//func (d *Driver) publicSSHKeyPath() string {
-//	return d.GetSSHKeyPath() + ".pub"
-//}
