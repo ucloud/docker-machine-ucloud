@@ -207,6 +207,9 @@ func (d *Driver) getHostDescription() (*UHostDetail, error) {
 		memory:          resp.UHostSet[0].Memory,
 	}
 
+	d.CPU = resp.UHostSet[0].CPU
+	d.Memory = resp.UHostSet[0].Memory
+
 	return details, nil
 }
 
@@ -336,7 +339,7 @@ func (d *Driver) getSecurityGroup(name string) (int, error) {
 	}
 
 	for _, groups := range describeSecurityGroupsResp.DataSet {
-		log.Debugf("name:%s, group id:%d", name, groups.GroupId)
+		log.Debugf("name:%s, group id:%d", groups.GroupName, groups.GroupId)
 		if groups.GroupName == name {
 			log.Debugf("groups:%+v", groups)
 			return groups.GroupId, nil
@@ -362,7 +365,7 @@ func (d *Driver) configureSecurityGroup() error {
 	if err != nil {
 		log.Debugf("get security group error:%s", err)
 	}
-	log.Debugf("groupId:%s", groupId)
+	log.Debugf("groupId:%d", groupId)
 	if groupId == 0 {
 		log.Infof("security group is not found, create a new one")
 

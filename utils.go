@@ -2,6 +2,8 @@ package ucloud
 
 import (
 	"errors"
+	"math/rand"
+	"time"
 )
 
 var (
@@ -27,4 +29,16 @@ func validateUCloudRegion(region string) (string, error) {
 	}
 
 	return "", errInvalidRegion
+}
+
+func generateRandomPassword(n int) string {
+	rand.Seed(time.Now().UnixNano())
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#$%^&*()_+}{:?><")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+
+	return string(b)
 }

@@ -169,7 +169,8 @@ func (d *Driver) Create() error {
 	log.Infof("Create UHost instance...")
 
 	if d.Password == "" {
-		return fmt.Errorf("ucloud driver requires --ucloud-user-password options.")
+		d.Password = generateRandomPassword(16)
+		log.Infof("password is not set, we use the random password instead, password:%s", d.Password)
 	}
 
 	// create keypair
@@ -201,7 +202,6 @@ func (d *Driver) Create() error {
 		return fmt.Errorf("upload keypair failed:%s", err)
 	}
 
-	// TODO: get detail info of uhost to save
 	return nil
 }
 
