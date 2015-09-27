@@ -255,8 +255,7 @@ func (d *Driver) GetState() (state.State, error) {
 
 func (d *Driver) Start() error {
 	log.Info("Start UHost...")
-	err := startUHost(d.Region, d.UhostID)
-	if err != nil {
+	if err := d.startUHost(); err != nil {
 		return fmt.Errorf("Cannot start Machine:%s, with UHost: %s.", d.MachineName, d.UhostID)
 	}
 
@@ -269,8 +268,7 @@ func (d *Driver) Stop() error {
 		return fmt.Errorf("UHost is not exist for Machine:%s", d.MachineName)
 	}
 
-	err := stopUHost(d.Region, d.UhostID)
-	if err != nil {
+	if err := d.stopUHost(); err != nil {
 		return fmt.Errorf("Cannot start Machine:%s, with UHost: %s.", d.MachineName, d.UhostID)
 	}
 
@@ -279,7 +277,7 @@ func (d *Driver) Stop() error {
 
 func (d *Driver) Remove() error {
 	log.Debug("Removing...")
-	if err := terminateUHost(d.Region, d.UhostID); err != nil {
+	if err := d.terminateUHost(); err != nil {
 		return fmt.Errorf("Unable to terminate the UHost instance:%s", err)
 	}
 
@@ -289,7 +287,7 @@ func (d *Driver) Remove() error {
 
 func (d *Driver) Restart() error {
 	log.Debug("Restarting...")
-	if err := rebootUHost(d.Region, d.UhostID); err != nil {
+	if err := d.rebootUHost(); err != nil {
 		return fmt.Errorf("Unable to restart the UHost instance:%s", err)
 	}
 
@@ -298,7 +296,7 @@ func (d *Driver) Restart() error {
 
 func (d *Driver) Kill() error {
 	log.Debug("Killing...")
-	if err := killUHost(d.Region, d.UhostID); err != nil {
+	if err := d.killUHost(); err != nil {
 		return fmt.Errorf("Unable to kill the UHost instance:%s", err)
 	}
 

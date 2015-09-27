@@ -67,94 +67,71 @@ func (d *Driver) createUHost() error {
 	return nil
 }
 
-func startUHost(region, hostId string) error {
-
+func (d *Driver) startUHost() error {
 	startUhostParams := uhost.StartUHostInstanceParams{
-		Region:  region,
-		UHostId: hostId,
+		Region:  d.Region,
+		UHostId: d.UhostID,
 	}
-
-	resp, err := hostsvc.StartUHostInstance(&startUhostParams)
+	_, err := hostsvc.StartUHostInstance(&startUhostParams)
 	if err != nil {
 		return err
-	}
-
-	if resp.RetCode != 0 {
-		return fmt.Errorf("Start UHost error, Retcode:%d, err:%s", resp.RetCode, err)
 	}
 
 	return nil
 }
 
-func killUHost(region, hostId string) error {
+func (d *Driver) killUHost() error {
 	killUHostParams := uhost.PoweroffUHostInstanceParams{
-		Region:  region,
-		UHostId: hostId,
+		Region:  d.Region,
+		UHostId: d.UhostID,
 	}
 
-	resp, err := hostsvc.PoweroffUHostInstance(&killUHostParams)
+	_, err := hostsvc.PoweroffUHostInstance(&killUHostParams)
 	if err != nil {
 		return err
-	}
-
-	if resp.RetCode != 0 {
-		return fmt.Errorf("Start UHost error, Retcode:%d, err:%s", resp.RetCode, err)
 	}
 
 	return nil
 }
 
-func rebootUHost(region, hostId string) error {
+func (d *Driver) rebootUHost() error {
 
 	killUHostParams := uhost.PoweroffUHostInstanceParams{
-		Region:  region,
-		UHostId: hostId,
+		Region:  d.Region,
+		UHostId: d.UhostID,
 	}
 
-	resp, err := hostsvc.PoweroffUHostInstance(&killUHostParams)
+	_, err := hostsvc.PoweroffUHostInstance(&killUHostParams)
 	if err != nil {
 		return err
 	}
-
-	if resp.RetCode != 0 {
-		return fmt.Errorf("Start UHost error, Retcode:%d, err:%s", resp.RetCode, err)
-	}
-
 	return nil
 }
 
-func terminateUHost(region, hostId string) error {
+func (d *Driver) terminateUHost() error {
 
 	terminateUHostParams := uhost.TerminateUHostInstanceParams{
-		Region:  region,
-		UHostId: hostId,
+		Region:  d.Region,
+		UHostId: d.UhostID,
 	}
 
-	resp, err := hostsvc.TerminateUHostInstance(&terminateUHostParams)
+	_, err := hostsvc.TerminateUHostInstance(&terminateUHostParams)
 	if err != nil {
 		return err
-	}
-
-	if resp.RetCode != 0 {
-		return fmt.Errorf("Start UHost error, Retcode:%d, err:%s", resp.RetCode, err)
 	}
 
 	return nil
 }
 
-func stopUHost(region, hostId string) error {
+func (d *Driver) stopUHost() error {
 	stopUhostParams := uhost.StopUHostInstanceParams{
-		Region:  region,
-		UHostId: hostId,
+		Region:  d.Region,
+		UHostId: d.UhostID,
 	}
 
-	resp, err := hostsvc.StopUHostInstance(&stopUhostParams)
+	_, err := hostsvc.StopUHostInstance(&stopUhostParams)
 	if err != nil {
 		return err
-	}
-
-	if resp.RetCode != 0 {
-		return fmt.Errorf("Stop UHost error, Retcode:%d, err:%s", resp.RetCode, err)
 	}
 
 	return nil
@@ -269,8 +246,8 @@ func (d *Driver) uploadKeyPair() error {
 	log.Debugf("Upload the public key with command: %s", command)
 
 	output, err := sshClient.Output(command)
-	log.Debugf("Upload command err, output: %v: %s", err, output)
 	if err != nil {
+		log.Debugf("Upload command err, output: %v: %s", err, output)
 		return err
 	}
 
