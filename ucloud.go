@@ -8,6 +8,7 @@ import (
 	"github.com/docker/machine/libmachine/drivers"
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/mcnflag"
+	"github.com/docker/machine/libmachine/mcnutils"
 	"github.com/docker/machine/libmachine/state"
 )
 
@@ -25,11 +26,10 @@ type Driver struct {
 	Memory    int
 	DiskSpace int
 
-	PrivateIPOnly 	bool
-
-	//	SecurityGroupId string
-	//	Address         string
-	//	UHostType       string
+	PrivateIPOnly     bool
+	PrivateIPAddress  string
+	SecurityGroupId   int
+	SecurityGroupName string
 }
 
 const (
@@ -39,6 +39,7 @@ const (
 	defaultDiskSpace = 20000
 	defaultRegion    = "cn-north-03"
 	defaultRetries   = 10
+	defaultImageId   = "uimage-5yt2b0" // we use CentOS 7.0 default
 )
 
 func NewDriver(hostName, artifactPath string) *Driver {
@@ -95,8 +96,13 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 			Value: 22,
 		},
 		{
-			Name: "ucloud-private-address-only",
+			Name:  "ucloud-private-address-only",
 			Usage: "Only use a private IP address",
+		},
+		{
+			Name:  "ucloud-security-group",
+			Usage: "UCloud security group",
+			Value: "docker-machine",
 		},
 	}
 }
@@ -138,11 +144,12 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 
 	image := flags.String("ucloud-imageid")
 	if len(image) == 0 {
-		image = "uimage-j4fbrn"
+		image = defaultImageId
 	}
 	d.ImageId = image
 
 	d.PrivateIPOnly = flags.Bool("ucloud-private-address-only")
+	d.SecurityGroupName = flags.String("ucloud-security-group")
 
 	d.SSHUser = strings.ToLower(flags.String("ucloud-ssh-user"))
 	if d.SSHUser == "" {
@@ -150,7 +157,6 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	}
 	d.Password = flags.String("ucloud-user-password")
 	d.SSHPort = 22
-
 
 	return nil
 }
@@ -165,41 +171,37 @@ func (d *Driver) Create() error {
 	if d.Password == "" {
 		return fmt.Errorf("ucloud driver requires --ucloud-user-password options.")
 	}
-	//TODO: create an keypairs when uhost api is supported, we have to use expect to
-	// create the ssh keypairs
+
+	// create keypair
+	log.Infof("Creating key pair for instances...")
+	if err := d.createKeyPair(); err != nil {
+		return fmt.Errorf("unable to create key pair: %s", err)
+	}
 
 	// create uhost instance
-	hostId, err := createUHost(d.Region, d.ImageId, d.Password)
-	if err != nil {
+	log.Infof("Creating uhost instance...")
+	if err := d.createUHost(); err != nil {
 		return fmt.Errorf("create UHost failed:%s", err)
 	}
-	d.UhostID = hostId
 
-	if !d.PrivateIPOnly {
-		//TODO: user the exist eip and security group to configure network
-		d.createUNet()
+	// waiting for creating successful
+	if err := mcnutils.WaitFor(drivers.MachineInState(d, state.Running)); err != nil {
+		return fmt.Errorf("wait for machine running failed: %s", err)
 	}
 
-	for i := 0; i < defaultRetries; i++ {
-		// get details of host
-		details, err := getHostDescription(d.Region, hostId)
-		if err != nil {
-			return fmt.Errorf("get UHost details failed:%s", err)
-		}
-
-		if details != nil && details.ipAddress != "" && details.cpu != 0 {
-			d.IPAddress = details.ipAddress
-			d.CPU = details.cpu
-			d.Memory = details.memory
-
-			break
-		}
-
-		time.Sleep(1 * time.Second)
+	// create networks, like private ip, eip, and security group
+	log.Infof("Creating networks...")
+	//TODO: user the exist eip and security group to configure network
+	if err := d.createUNet(); err != nil {
+		return fmt.Errorf("create networks failed:%s", err)
 	}
 
-	// TODO: install docker
+	// upload keypair
+	if err := d.uploadKeyPair(); err != nil {
+		return fmt.Errorf("upload keypair failed:%s", err)
+	}
 
+	// TODO: get detail info of uhost to save
 	return nil
 }
 
@@ -220,13 +222,12 @@ func (d *Driver) GetIP() (string, error) {
 }
 
 func (d *Driver) GetState() (state.State, error) {
-	log.Debugf("Driver:%+v", d)
-	log.Info("Get Uhost details")
+	log.Debugf("Get Uhost details")
 	if d.UhostID == "" || d.Region == "" {
 		return state.None, fmt.Errorf("region or uhost is empty")
 	}
 
-	details, err := getHostDescription(d.Region, d.UhostID)
+	details, err := d.getHostDescription()
 	if err != nil {
 		return state.None, fmt.Errorf("get UHost details failed:%s", err)
 	}

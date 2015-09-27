@@ -3,13 +3,16 @@ package ucloud
 import (
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"strings"
 
+	"github.com/docker/machine/libmachine/log"
+	"github.com/docker/machine/libmachine/mcnutils"
+	"github.com/docker/machine/libmachine/ssh"
 	"github.com/ucloud/ucloud-sdk-go/service/uhost"
 	"github.com/ucloud/ucloud-sdk-go/service/unet"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
 	"github.com/ucloud/ucloud-sdk-go/ucloud/auth"
-	"github.com/docker/machine/libmachine/log"
-	"github.com/xiaohui/goucloud/ucloud/utils"
 )
 
 var (
@@ -31,35 +34,37 @@ func init() {
 	unetsvc = unet.New(config)
 }
 
-func createUHost(region, imageId, password string) (string, error) {
-	password = base64.StdEncoding.EncodeToString([]byte(password))
+func (d *Driver) createUHost() error {
+	//TODO: password should remove the "=" after base64 encoding, I don't why?
+	password := strings.Replace(base64.StdEncoding.EncodeToString([]byte(d.Password)), "=", "", -1)
 
 	createUhostParams := uhost.CreateUHostInstanceParams{
 
-		Region:    region,
-		ImageId:   imageId,
+		Region:    d.Region,
+		ImageId:   d.ImageId,
 		LoginMode: "Password",
 		Password:  password,
-		CPU:       1,
-		Memory:    2048,
+		CPU:       defaultCPU,
+		Memory:    defaultMemory,
 		Quantity:  1,
 		Count:     1,
 	}
 
 	resp, err := hostsvc.CreateUHostInstance(&createUhostParams)
-	utils.DumpVal(resp)
 	if err != nil {
-		return "", err
+		return err
 	}
+
 	if resp == nil {
-		return "", fmt.Errorf("response is empty")
+		return fmt.Errorf("response is empty")
 	}
 
-	if resp.RetCode != 0 {
-		return "", fmt.Errorf("Create UHost error, RetCode:%d, err:%s", resp.RetCode, err)
+	if len(resp.UHostIds) == 0 {
+		return fmt.Errorf("UHostIds is empty")
 	}
+	d.UhostID = resp.UHostIds[0]
 
-	return resp.UHostIds[0], nil
+	return nil
 }
 
 func startUHost(region, hostId string) error {
@@ -159,124 +164,247 @@ type UHostDetail struct {
 	region string
 	hostID string
 
-	state     string
-	ipAddress string
-	cpu       int
-	memory    int
+	state           string
+	publicIPAddress string
+	privateIPAdress string
+	cpu             int
+	memory          int
 }
 
-func getHostDescription(region, hostId string) (*UHostDetail, error) {
+func (d *Driver) getHostDescription() (*UHostDetail, error) {
 
 	describeParams := uhost.DescribeUHostInstanceParams{
-		Region: region,
-		UHostIds:[]string{hostId},
-		Offset: 0,
-		Limit:  10,
+		Region:   d.Region,
+		UHostIds: []string{d.UhostID},
+		Offset:   0,
+		Limit:    10,
 	}
 
-	log.Debug(hostsvc)
 	resp, err := hostsvc.DescribeUHostInstance(&describeParams)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.RetCode != 0 {
-		return nil, fmt.Errorf("Describe UHost error, Retcode:%d, err:%s", resp.RetCode, err)
-	}
-
-	if &resp.UHostSet[0] == nil {
+	if len(resp.UHostSet) == 0 {
 		return nil, fmt.Errorf("UHostSet is empty")
 	}
-	hostState := resp.UHostSet[0].State
 
-	// TODO: Now we get eip,later we will return the type of ip by options
-	var hostIpAddress string
+	if len(resp.UHostSet[0].IPSet) == 0 {
+		return nil, fmt.Errorf("IPSet is empty")
+	}
+
+	var publicIpAddress string
+	var privateIPAddress string
 	for _, ip := range resp.UHostSet[0].IPSet {
-		if ip.Type == "Private" {
-			continue
-		} else {
-			hostIpAddress = ip.IP
+		switch ip.Type {
+		case "Private":
+			privateIPAddress = ip.IP
+		case "Bgp":
+			publicIpAddress = ip.IP
 		}
 	}
 
 	details := &UHostDetail{
-		region:    region,
-		hostID:    hostId,
-		state:     hostState,
-		ipAddress: hostIpAddress,
-		cpu:       resp.UHostSet[0].CPU,
-		memory:    resp.UHostSet[0].Memory,
+		region:          d.Region,
+		hostID:          resp.UHostSet[0].UHostId,
+		state:           resp.UHostSet[0].State,
+		publicIPAddress: publicIpAddress,
+		privateIPAdress: privateIPAddress,
+		cpu:             resp.UHostSet[0].CPU,
+		memory:          resp.UHostSet[0].Memory,
 	}
 
 	return details, nil
 }
 
-
 // createUNet create network for uhost
 func (d *Driver) createUNet() error {
-	createEIPParams := unet.AllocateEIPParams{
-		Region: d.Region,
-		OperatorName: "Bgp",
-		Bandwidth: 2,
-		ChargeType: "Dynamic",
-		Quantity: 1,
+	if err := d.configureIPAddress(); err != nil {
+		return fmt.Errorf("configure IPAddress error:%s", err)
 	}
 
-	resp, err := unetsvc.AllocateEIP(&createEIPParams)
+	if err := d.configureSecurityGroup(); err != nil {
+		return fmt.Errorf("configure security group error:%s", err)
+	}
+
+	return nil
+}
+
+// createKeyPair create keypair for ssh to docker-machine
+func (d *Driver) createKeyPair() error {
+	log.Debugf("SSH key path:%s", d.GetSSHKeyPath())
+
+	if err := ssh.GenerateSSHKey(d.GetSSHKeyPath()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// uploadKeyPair upload the public key to docker-machine
+func (d *Driver) uploadKeyPair() error {
+
+	ipAddr := d.IPAddress
+	port, _ := d.GetSSHPort()
+
+	tcpAddr := fmt.Sprintf("%s:%d", ipAddr, port)
+	ssh.WaitForTCP(tcpAddr)
+
+	auth := ssh.Auth{
+		Passwords: []string{d.Password},
+	}
+
+	ssh.SetDefaultClient(ssh.Native)
+	sshClient, err := ssh.NewClient(d.GetSSHUsername(), ipAddr, port, &auth)
 	if err != nil {
-		return fmt.Errorf("Allocate EIP failed:%s", err)
-	}
-	utils.DumpVal(resp)
-	if resp.RetCode != 0 {
-		return fmt.Errorf("Allocate EIP failed")
+		return err
 	}
 
-	// FIXME: it is ugly here to get eip
-	eipId := (*resp.EIPSet)[0].EIPId
-	d.IPAddress = (*(*resp.EIPSet)[0].EIPAddr)[0].IP
-
-	bindHostParams := unet.BindEIPParams{
-		Region: d.Region,
-		EIPId: eipId,
-		ResourceType: "uhost",
-		ResourceId: d.UhostID,
-	}
-
-	bindEIPResp, err := unetsvc.BindEIP(&bindHostParams)
+	publicKey, err := ioutil.ReadFile(d.GetSSHKeyPath() + ".pub")
 	if err != nil {
-		return fmt.Errorf("Bind EIP failed:%s", err)
+		return err
 	}
-	utils.DumpVal(bindEIPResp)
 
-	// create security group
-	securityGroupParams := unet.CreateSecurityGroupParams{
-		Region: d.Region,
-		GroupName: "docker-machine",
-		Description: "docker machine to open 2379 and 22 port of tcp",
-		Rule: []string{"TCP|22|0.0.0.0/0|ACCEPT|50", "TCP|3389|0.0.0.0/0|ACCEPT|50","TCP|2379|0.0.0.0/0|ACCEPT|50"},
-	}
-	createSecurityGroupResp, err := unetsvc.CreateSecurityGroup(&securityGroupParams)
+	command := fmt.Sprintf("mkdir -p ~/.ssh; echo '%s' > ~/.ssh/authorized_keys", string(publicKey))
+	log.Debugf("Upload the public key with command: %s", command)
+
+	output, err := sshClient.Output(command)
+	log.Debugf("Upload command err, output: %v: %s", err, output)
 	if err != nil {
-		return fmt.Errorf("create security group failed:%s", err)
+		return err
 	}
-	utils.DumpVal(createSecurityGroupResp)
 
-	// TODO： because CreateSecurityGroup don't return GroupId, so we have to
-	// iterate all security groups to find the right one, Here we use the given
-	// security group for testing.
+	return nil
+}
+
+func (d *Driver) configureIPAddress() error {
+
+	// create an EIP and bind it to host
+	if !d.PrivateIPOnly {
+		createEIPParams := unet.AllocateEIPParams{
+			Region:       d.Region,
+			OperatorName: "Bgp",
+			Bandwidth:    2,
+			ChargeType:   "Dynamic",
+			Quantity:     1,
+		}
+
+		resp, err := unetsvc.AllocateEIP(&createEIPParams)
+		if err != nil {
+			return fmt.Errorf("Allocate EIP failed:%s", err)
+		}
+		log.Debug(resp)
+
+		if len(*resp.EIPSet) == 0 {
+			return fmt.Errorf("EIP is empty")
+		}
+		eipId := (*resp.EIPSet)[0].EIPId
+		if len(*(*resp.EIPSet)[0].EIPAddr) == 0 {
+			return fmt.Errorf("IP Address is empty")
+		}
+		d.IPAddress = (*(*resp.EIPSet)[0].EIPAddr)[0].IP
+
+		bindHostParams := unet.BindEIPParams{
+			Region:       d.Region,
+			EIPId:        eipId,
+			ResourceType: "uhost",
+			ResourceId:   d.UhostID,
+		}
+
+		bindEIPResp, err := unetsvc.BindEIP(&bindHostParams)
+		if err != nil {
+			return fmt.Errorf("Bind EIP failed:%s", err)
+		}
+		log.Debug(bindEIPResp)
+	} else {
+		hostDetails, err := d.getHostDescription()
+		if err != nil {
+			return fmt.Errorf("get host detail failed: %s", err)
+		}
+		d.IPAddress = hostDetails.publicIPAddress
+		d.PrivateIPAddress = hostDetails.privateIPAdress
+	}
+
+	return nil
+}
+
+func (d *Driver) getSecurityGroup(name string) (int, error) {
+	log.Debugf("get security group for group:%s", name)
+	describeSecurityGroupsParams := unet.DescribeSecurityGroupParams{
+		Region: d.Region,
+	}
+	describeSecurityGroupsResp, err := unetsvc.DescribeSecurityGroup(&describeSecurityGroupsParams)
+	if err != nil {
+		return 0, fmt.Errorf("get security groups failed:%s", err)
+	}
+
+	if len(describeSecurityGroupsResp.DataSet) == 0 {
+		return 0, fmt.Errorf("security groups is empty")
+	}
+
+	for _, groups := range describeSecurityGroupsResp.DataSet {
+		log.Debugf("name:%s, group id:%d", name, groups.GroupId)
+		if groups.GroupName == name {
+			log.Debugf("groups:%+v", groups)
+			return groups.GroupId, nil
+		}
+	}
+
+	return 0, fmt.Errorf("group:%s is not exist", name)
+}
+
+func (d *Driver) securityGroupAvailableFunc(name string) func() bool {
+	return func() bool {
+		_, err := d.getSecurityGroup(name)
+		if err == nil {
+			return true
+		}
+		return false
+	}
+}
+
+func (d *Driver) configureSecurityGroup() error {
+	var groupId int
+	groupId, err := d.getSecurityGroup(d.SecurityGroupName)
+	if err != nil {
+		log.Debugf("get security group error:%s", err)
+	}
+	log.Debugf("groupId:%s", groupId)
+	if groupId == 0 {
+		log.Infof("security group is not found, create a new one")
+
+		securityGroupParams := unet.CreateSecurityGroupParams{
+			Region:      d.Region,
+			GroupName:   "docker-machine",
+			Description: "docker machine to open 2379 and 22 port of tcp",
+			Rule: []string{"TCP|22|0.0.0.0/0|ACCEPT|50",
+				"TCP|3389|0.0.0.0/0|ACCEPT|50",
+				"TCP|2376|0.0.0.0/0|ACCEPT|50"},
+		}
+		_, err := unetsvc.CreateSecurityGroup(&securityGroupParams)
+		if err != nil {
+			return fmt.Errorf("create security group failed:%s", err)
+		}
+
+		log.Debug("waiting for security group to become avaliable")
+		if err := mcnutils.WaitFor(d.securityGroupAvailableFunc(d.SecurityGroupName)); err != nil {
+			return err
+		}
+		groupId, err = d.getSecurityGroup(d.SecurityGroupName)
+	}
+	d.SecurityGroupId = groupId
+
 	grantSecurityGroupParams := unet.GrantSecurityGroupParams{
-		Region: d.Region,
-		GroupId: 33149, //"docker machine"
+		Region:       d.Region,
+		GroupId:      groupId,
 		ResourceType: "uhost",
-		ResourceId: d.UhostID,
+		ResourceId:   d.UhostID,
 	}
-	grantSecurityResp, err := unetsvc.GrantSecurityGroup(&grantSecurityGroupParams)
+	log.Debugf("grant security group(%d) to uhost(%s)", groupId, d.UhostID)
+	_, err = unetsvc.GrantSecurityGroup(&grantSecurityGroupParams)
 	if err != nil {
 		return fmt.Errorf("grant security group failed:%s", err)
 	}
-	utils.DumpVal(grantSecurityResp)
-
-
 
 	return nil
 }
