@@ -20,18 +20,34 @@ var (
 	unetsvc *unet.UNet
 )
 
-func init() {
-	config := &ucloud.Config{
+func (d *Driver) newConfig() *ucloud.Config {
+	return &ucloud.Config{
 		Credentials: &auth.KeyPair{
-			PublicKey:  "ucloudsomeone@example.com1296235120854146120",
-			PrivateKey: "46f09bb9fab4f12dfc160dae12273d5332b5debe",
+			PublicKey:  d.PublicKey,
+			PrivateKey: d.PrivateKey,
 		},
-		Region:    "cn-north-03",
-		ProjectID: "",
+		Region: d.Region,
 	}
+}
 
-	hostsvc = uhost.New(config)
-	unetsvc = unet.New(config)
+func (d *Driver) getUHostService() *uhost.UHost {
+
+	if hostsvc != nil {
+		return hostsvc
+	}
+	hostsvc = uhost.New(d.newConfig())
+
+	return hostsvc
+}
+
+func (d *Driver) getUNetService() *unet.UNet {
+
+	if unetsvc != nil {
+		return unetsvc
+	}
+	unetsvc = unet.New(d.newConfig())
+
+	return unetsvc
 }
 
 func (d *Driver) createUHost() error {
@@ -50,7 +66,7 @@ func (d *Driver) createUHost() error {
 		Count:     1,
 	}
 
-	resp, err := hostsvc.CreateUHostInstance(&createUhostParams)
+	resp, err := d.getUHostService().CreateUHostInstance(&createUhostParams)
 	if err != nil {
 		return err
 	}
@@ -72,7 +88,7 @@ func (d *Driver) startUHost() error {
 		Region:  d.Region,
 		UHostId: d.UhostID,
 	}
-	_, err := hostsvc.StartUHostInstance(&startUhostParams)
+	_, err := d.getUHostService().StartUHostInstance(&startUhostParams)
 	if err != nil {
 		return err
 	}
@@ -86,7 +102,7 @@ func (d *Driver) killUHost() error {
 		UHostId: d.UhostID,
 	}
 
-	_, err := hostsvc.PoweroffUHostInstance(&killUHostParams)
+	_, err := d.getUHostService().PoweroffUHostInstance(&killUHostParams)
 	if err != nil {
 		return err
 	}
@@ -101,7 +117,7 @@ func (d *Driver) rebootUHost() error {
 		UHostId: d.UhostID,
 	}
 
-	_, err := hostsvc.PoweroffUHostInstance(&killUHostParams)
+	_, err := d.getUHostService().PoweroffUHostInstance(&killUHostParams)
 	if err != nil {
 		return err
 	}
@@ -115,7 +131,7 @@ func (d *Driver) terminateUHost() error {
 		UHostId: d.UhostID,
 	}
 
-	_, err := hostsvc.TerminateUHostInstance(&terminateUHostParams)
+	_, err := d.getUHostService().TerminateUHostInstance(&terminateUHostParams)
 	if err != nil {
 		return err
 	}
@@ -129,7 +145,7 @@ func (d *Driver) stopUHost() error {
 		UHostId: d.UhostID,
 	}
 
-	_, err := hostsvc.StopUHostInstance(&stopUhostParams)
+	_, err := d.getUHostService().StopUHostInstance(&stopUhostParams)
 	if err != nil {
 		return err
 	}
@@ -157,7 +173,7 @@ func (d *Driver) getHostDescription() (*UHostDetail, error) {
 		Limit:    10,
 	}
 
-	resp, err := hostsvc.DescribeUHostInstance(&describeParams)
+	resp, err := d.getUHostService().DescribeUHostInstance(&describeParams)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +282,7 @@ func (d *Driver) configureIPAddress() error {
 			Quantity:     1,
 		}
 
-		resp, err := unetsvc.AllocateEIP(&createEIPParams)
+		resp, err := d.getUNetService().AllocateEIP(&createEIPParams)
 		if err != nil {
 			return fmt.Errorf("Allocate EIP failed:%s", err)
 		}
@@ -288,7 +304,7 @@ func (d *Driver) configureIPAddress() error {
 			ResourceId:   d.UhostID,
 		}
 
-		bindEIPResp, err := unetsvc.BindEIP(&bindHostParams)
+		bindEIPResp, err := d.getUNetService().BindEIP(&bindHostParams)
 		if err != nil {
 			return fmt.Errorf("Bind EIP failed:%s", err)
 		}
@@ -310,7 +326,7 @@ func (d *Driver) getSecurityGroup(name string) (int, error) {
 	describeSecurityGroupsParams := unet.DescribeSecurityGroupParams{
 		Region: d.Region,
 	}
-	describeSecurityGroupsResp, err := unetsvc.DescribeSecurityGroup(&describeSecurityGroupsParams)
+	describeSecurityGroupsResp, err := d.getUNetService().DescribeSecurityGroup(&describeSecurityGroupsParams)
 	if err != nil {
 		return 0, fmt.Errorf("get security groups failed:%s", err)
 	}
@@ -358,7 +374,7 @@ func (d *Driver) configureSecurityGroup() error {
 				"TCP|3389|0.0.0.0/0|ACCEPT|50",
 				"TCP|2376|0.0.0.0/0|ACCEPT|50"},
 		}
-		_, err := unetsvc.CreateSecurityGroup(&securityGroupParams)
+		_, err := d.getUNetService().CreateSecurityGroup(&securityGroupParams)
 		if err != nil {
 			return fmt.Errorf("create security group failed:%s", err)
 		}
@@ -378,7 +394,7 @@ func (d *Driver) configureSecurityGroup() error {
 		ResourceId:   d.UhostID,
 	}
 	log.Debugf("grant security group(%d) to uhost(%s)", groupId, d.UhostID)
-	_, err = unetsvc.GrantSecurityGroup(&grantSecurityGroupParams)
+	_, err = d.getUNetService().GrantSecurityGroup(&grantSecurityGroupParams)
 	if err != nil {
 		return fmt.Errorf("grant security group failed:%s", err)
 	}
