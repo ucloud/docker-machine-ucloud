@@ -158,6 +158,10 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	d.Password = flags.String("ucloud-user-password")
 	d.SSHPort = 22
 
+	d.SwarmMaster = flags.Bool("swarm-master")
+	d.SwarmHost = flags.String("swarm-host")
+	d.SwarmDiscovery = flags.String("swarm-discovery")
+
 	return nil
 }
 
@@ -222,7 +226,7 @@ func (d *Driver) GetIP() (string, error) {
 }
 
 func (d *Driver) GetState() (state.State, error) {
-	log.Debugf("Get Uhost details")
+	log.Debugf("Get Machine State")
 	if d.UhostID == "" || d.Region == "" {
 		return state.None, fmt.Errorf("region or uhost is empty")
 	}
