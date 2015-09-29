@@ -197,7 +197,10 @@ func (d *Driver) getHostDescription() (*UHostDetail, error) {
 		}
 	}
 
-	details := &UHostDetail{
+	d.CPU = resp.UHostSet[0].CPU
+	d.Memory = resp.UHostSet[0].Memory
+
+	return &UHostDetail{
 		region:          d.Region,
 		hostID:          resp.UHostSet[0].UHostId,
 		state:           resp.UHostSet[0].State,
@@ -205,12 +208,7 @@ func (d *Driver) getHostDescription() (*UHostDetail, error) {
 		privateIPAdress: privateIPAddress,
 		cpu:             resp.UHostSet[0].CPU,
 		memory:          resp.UHostSet[0].Memory,
-	}
-
-	d.CPU = resp.UHostSet[0].CPU
-	d.Memory = resp.UHostSet[0].Memory
-
-	return details, nil
+	}, nil
 }
 
 // createUNet create network for uhost
