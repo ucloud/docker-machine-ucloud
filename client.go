@@ -235,15 +235,21 @@ func (d *Driver) createKeyPair() error {
 	return nil
 }
 
+func (d *Driver) waitForSSHFunc(client ssh.Client, command string) func() bool {
+	return func() bool {
+		_, err := client.Output(command)
+		if err == nil {
+			return true
+		}
+		return false
+	}
+}
+
 // uploadKeyPair upload the public key to docker-machine
 func (d *Driver) uploadKeyPair() error {
 
 	ipAddr := d.IPAddress
 	port, _ := d.GetSSHPort()
-
-	tcpAddr := fmt.Sprintf("%s:%d", ipAddr, port)
-	ssh.WaitForTCP(tcpAddr)
-
 	auth := ssh.Auth{
 		Passwords: []string{d.Password},
 	}
@@ -253,6 +259,7 @@ func (d *Driver) uploadKeyPair() error {
 	if err != nil {
 		return err
 	}
+	d.waitForSSHFunc(sshClient, "exit 0")
 
 	publicKey, err := ioutil.ReadFile(d.GetSSHKeyPath() + ".pub")
 	if err != nil {

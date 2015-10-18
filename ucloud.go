@@ -46,7 +46,7 @@ func NewDriver(hostName, artifactPath string) *Driver {
 	return &Driver{
 		BaseDriver: &drivers.BaseDriver{
 			MachineName:  hostName,
-			ArtifactPath: artifactPath,
+//			ArtifactPath: artifactPath,
 		},
 		Region:    defaultRegion,
 		Memory:    defaultMemory,
@@ -57,49 +57,50 @@ func NewDriver(hostName, artifactPath string) *Driver {
 
 func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 	return []mcnflag.Flag{
-		{
+
+		mcnflag.StringFlag {
 			Name:   "ucloud-public-key",
 			Usage:  "UCloud Public Key",
 			Value:  "",
 			EnvVar: "UCLOUD_PUBLIC_KEY",
 		},
-		{
+		mcnflag.StringFlag {
 			Name:   "ucloud-private-key",
 			Usage:  "UCloud Private Key",
 			Value:  "",
 			EnvVar: "UCLOUD_PRIVATE_KEY",
 		},
-		{
+		mcnflag.StringFlag {
 			Name:  "ucloud-imageid",
 			Usage: "UHost image id",
 			Value: "",
 		},
-		{
+		mcnflag.StringFlag {
 			Name:  "ucloud-user-password",
 			Usage: "Password of ucloud user",
 			Value: "",
 		},
-		{
+		mcnflag.StringFlag {
 			Name:   "ucloud-region",
 			Usage:  "Region of ucloud idc",
 			Value:  "cn-north-03",
 			EnvVar: "UCLOUD_REGION",
 		},
-		{
+		mcnflag.StringFlag {
 			Name:  "ucloud-ssh-user",
 			Usage: "SSH user",
 			Value: "root",
 		},
-		{
+		mcnflag.IntFlag {
 			Name:  "ucloud-ssh-port",
 			Usage: "SSH port",
 			Value: 22,
 		},
-		{
+		mcnflag.BoolFlag {
 			Name:  "ucloud-private-address-only",
 			Usage: "Only use a private IP address",
 		},
-		{
+		mcnflag.StringFlag {
 			Name:  "ucloud-security-group",
 			Usage: "UCloud security group",
 			Value: "docker-machine",

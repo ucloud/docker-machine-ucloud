@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	plugin.RegisterDriver(new(ucloud.Driver))
+	plugin.RegisterDriver(ucloud.NewDriver("", ""))
 }

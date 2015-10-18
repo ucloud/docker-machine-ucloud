@@ -1,4 +1,5 @@
-docker-machine-ucloud*
+docker-machine-driver-ucloud
 .idea/
+*.iml
 
 *.bak

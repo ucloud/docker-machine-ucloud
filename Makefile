@@ -5,7 +5,7 @@ clean:
 	$(RM) $(GOPATH)/bin/docker-machine-ucloud
 
 build: clean
-	GOGC=off go build -i -o ./bin/docker-machine-ucloud ./bin
+	GOGC=off go build -i -o ./bin/docker-machine-driver-ucloud ./bin
 
 install: build
 	cp ./bin/docker-machine-ucloud $(GOPATH)/bin/
