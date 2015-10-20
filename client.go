@@ -51,7 +51,6 @@ func (d *Driver) getUNetService() *unet.UNet {
 }
 
 func (d *Driver) createUHost() error {
-	//TODO: password should remove the "=" after base64 encoding, I don't why?
 	password := strings.Replace(base64.StdEncoding.EncodeToString([]byte(d.Password)), "=", "", -1)
 
 	createUhostParams := uhost.CreateUHostInstanceParams{

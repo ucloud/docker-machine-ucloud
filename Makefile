@@ -8,6 +8,6 @@ build: clean
 	GOGC=off go build -i -o ./bin/docker-machine-driver-ucloud ./bin
 
 install: build
-	cp ./bin/docker-machine-ucloud $(GOPATH)/bin/
+	cp ./bin/docker-machine-driver-ucloud $(GOPATH)/bin/
 
 .PHONY: build install

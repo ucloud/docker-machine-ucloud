@@ -1,25 +1,24 @@
 # docker-machine-ucloud
 
-docker-machine-ucloud is a plugin of docker-machine for UCloud.
+docker-machine-ucloud is a plugin of docker-machine for UCloud. It requires Docker Machine's version is greater than v0.5.0-rc1.
 
-This plugin is a plugin for Docker Machine, which works with new plugin model for Docker Machine v0.5.0.
-Hard developing is still in progress, so don't use it in product environment. Please feel free to send feedback and issues.
+（[中文文档](README-zh.md)） 
 
+# Install and Run
 
-# install
+You could install run docker-machine-driver-ucloud as following steps.
 
-The new plugin mechanism of docker-machine which in still in development, so please try the branch of 
-[nathanleclaire/machine/libmachine_rpc_plugins](https://github.com/nathanleclaire/machine/tree/libmachine_rpc_plugins)
+First, docker-machine v0.5.0 rc2 is required, documentation for how to install `docker-machine`
+[is available here](https://github.com/docker/machine/releases/tag/v0.5.0-rc2#Installation).
 
+or you can install `docker-machine` from source code by running these commands
 ```
-# @nathanleclaire developpnig libmachine-rpc branch
-go get github.com/nathanleclaire/machine
-cd $GOPATH/src/github.com/nathanleclaire/machine
-git checkout nathanleclaire/libmachine_rpc_plugins
-# Make libmachine rpc include docker-machine_darwin-amd64 binary
-script/build
+$ go get github.com/docker/machine
+$ cd $GOPATH/src/github.com/docker/machine
+$ make build
 ```
-Then, you could install `docker-machine-ucloud` in the $GOPATH and add $GOPATH/bin to the $PATH env. 
+
+Then, you could install `docker-machine-ucloud` driver in the $GOPATH and add $GOPATH/bin to the $PATH env. 
 
 ```
 go get github.com/ucloud/docker-machine-ucloud
@@ -66,14 +65,3 @@ NAME             ACTIVE   DRIVER   STATE     URL                        SWARM
 ucloud-machine   -        ucloud   Running   tcp://123.59.66.163:2376
 ```
 
-# TODO
-
-- [ ] `ls` command panic occasionally.
-
-- [ ]  SecurityGroup of UNet can't works well.
-
-- [ ]  Testing
-    - [ ] testing for more situations.
-    - [ ] integration testing
-
-- [ ]  Swarm Support
