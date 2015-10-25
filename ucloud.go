@@ -215,12 +215,29 @@ func (d *Driver) GetURL() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if ip == "" {
+		return "", nil
+	}
+
 	return fmt.Sprintf("tcp://%s:2376", ip), nil
 }
 
 func (d *Driver) GetIP() (string, error) {
 	if d.IPAddress == "" {
 		return "", fmt.Errorf("IP address is not set")
+	}
+
+	s, err := d.GetState()
+	if err != nil {
+		return "", err
+	}
+
+	if s != state.Running {
+		return "", drivers.ErrHostIsNotRunning
+	}
+
+	if d.PrivateIPOnly {
+		return d.PrivateIPAddress, nil
 	}
 
 	return d.IPAddress, nil

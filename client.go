@@ -135,6 +135,7 @@ func (d *Driver) terminateUHost() error {
 		return err
 	}
 
+	// TODO: remove EIP and security group etc.
 	return nil
 }
 
@@ -158,7 +159,7 @@ type UHostDetail struct {
 
 	state           string
 	publicIPAddress string
-	privateIPAdress string
+	privateIPAddress string
 	cpu             int
 	memory          int
 }
@@ -204,7 +205,7 @@ func (d *Driver) getHostDescription() (*UHostDetail, error) {
 		hostID:          resp.UHostSet[0].UHostId,
 		state:           resp.UHostSet[0].State,
 		publicIPAddress: publicIpAddress,
-		privateIPAdress: privateIPAddress,
+		privateIPAddress: privateIPAddress,
 		cpu:             resp.UHostSet[0].CPU,
 		memory:          resp.UHostSet[0].Memory,
 	}, nil
@@ -322,7 +323,7 @@ func (d *Driver) configureIPAddress() error {
 			return fmt.Errorf("get host detail failed: %s", err)
 		}
 		d.IPAddress = hostDetails.publicIPAddress
-		d.PrivateIPAddress = hostDetails.privateIPAdress
+		d.PrivateIPAddress = hostDetails.privateIPAddress
 	}
 
 	return nil
