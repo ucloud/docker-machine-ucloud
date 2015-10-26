@@ -157,11 +157,11 @@ type UHostDetail struct {
 	region string
 	hostID string
 
-	state           string
-	publicIPAddress string
+	state            string
+	publicIPAddress  string
 	privateIPAddress string
-	cpu             int
-	memory          int
+	cpu              int
+	memory           int
 }
 
 func (d *Driver) getHostDescription() (*UHostDetail, error) {
@@ -201,13 +201,13 @@ func (d *Driver) getHostDescription() (*UHostDetail, error) {
 	d.Memory = resp.UHostSet[0].Memory
 
 	return &UHostDetail{
-		region:          d.Region,
-		hostID:          resp.UHostSet[0].UHostId,
-		state:           resp.UHostSet[0].State,
-		publicIPAddress: publicIpAddress,
+		region:           d.Region,
+		hostID:           resp.UHostSet[0].UHostId,
+		state:            resp.UHostSet[0].State,
+		publicIPAddress:  publicIpAddress,
 		privateIPAddress: privateIPAddress,
-		cpu:             resp.UHostSet[0].CPU,
-		memory:          resp.UHostSet[0].Memory,
+		cpu:              resp.UHostSet[0].CPU,
+		memory:           resp.UHostSet[0].Memory,
 	}, nil
 }
 
@@ -248,7 +248,11 @@ func (d *Driver) waitForSSHFunc(client ssh.Client, command string) func() bool {
 // uploadKeyPair upload the public key to docker-machine
 func (d *Driver) uploadKeyPair() error {
 
-	ipAddr := d.IPAddress
+	ipAddr, err := d.GetIP()
+	if err != nil {
+		return err
+	}
+
 	port, _ := d.GetSSHPort()
 	auth := ssh.Auth{
 		Passwords: []string{d.Password},
