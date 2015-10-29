@@ -11,7 +11,7 @@ docker-machine-ucloud是由[UCloud](https://www.ucloud.cn)提供的`docker-machi
 
 安装包下载后需要copy到$PATH目录下，可以通过以下命令安装
 ```
-$ curl -L https://github.com/ucloud/docker-machine-ucloud/releases/download/v0.5.0-rc3/docker-machine_linux-amd64.tar.gz > machine.tar.gz &&
+$ curl -L https://github.com/ucloud/docker-machine-ucloud/releases/download/v0.5.0-rc3/docker-machine_linux-amd64_v0.5.0-ucloud.tar.gz > machine.tar.gz &&
 $ tar -xzf machine.tar.gz && rm machine.tar.gz
 $ mv docker-machine* /usr/local/bin/
 ```
