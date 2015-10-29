@@ -253,7 +253,7 @@ func (d *Driver) GetState() (state.State, error) {
 
 	details, err := d.getHostDescription()
 	if err != nil {
-		return state.None, fmt.Errorf("get UHost details failed:%s", err)
+		return state.None, fmt.Errorf("get UHost details failed: %s", err)
 	}
 
 	var st state.State

@@ -179,11 +179,11 @@ func (d *Driver) getHostDescription() (*UHostDetail, error) {
 	}
 
 	if len(resp.UHostSet) == 0 {
-		return nil, fmt.Errorf("UHostSet is empty")
+		return nil, fmt.Errorf("UHost is not exist.")
 	}
 
 	if len(resp.UHostSet[0].IPSet) == 0 {
-		return nil, fmt.Errorf("IPSet is empty")
+		return nil, fmt.Errorf("IPSet is not exist")
 	}
 
 	var publicIpAddress string
