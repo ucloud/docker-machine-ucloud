@@ -183,7 +183,7 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	d.CPU = flags.Int("ucloud-cpu-core")
 	d.Memory = flags.Int("ucloud-memory-size")
 	d.DiskSpace = flags.Int("ucloud-disk-space")
-	d.ChargeType = flags.String("ucloud-chargetype")
+	d.ChargeType = flags.String("ucloud-charge-type")
 
 	d.PrivateIPOnly = flags.Bool("ucloud-private-address-only")
 	d.SecurityGroupName = flags.String("ucloud-security-group")

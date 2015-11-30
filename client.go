@@ -61,6 +61,7 @@ func (d *Driver) createUHost() error {
 		Password:   password,
 		CPU:        d.CPU,
 		Memory:     d.Memory,
+		DiskSpace:  d.DiskSpace,
 		Name:       d.MachineName,
 		ChargeType: d.ChargeType,
 		Quantity:   1,
