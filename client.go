@@ -55,14 +55,16 @@ func (d *Driver) createUHost() error {
 
 	createUhostParams := uhost.CreateUHostInstanceParams{
 
-		Region:    d.Region,
-		ImageId:   d.ImageId,
-		LoginMode: "Password",
-		Password:  password,
-		CPU:       defaultCPU,
-		Memory:    defaultMemory,
-		Quantity:  1,
-		Count:     1,
+		Region:     d.Region,
+		ImageId:    d.ImageId,
+		LoginMode:  "Password",
+		Password:   password,
+		CPU:        d.CPU,
+		Memory:     d.Memory,
+		Name:       d.MachineName,
+		ChargeType: d.ChargeType,
+		Quantity:   1,
+		Count:      1,
 	}
 
 	resp, err := d.getUHostService().CreateUHostInstance(&createUhostParams)

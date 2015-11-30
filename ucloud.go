@@ -22,9 +22,10 @@ type Driver struct {
 	Password   string
 	UhostID    string
 
-	CPU       int
-	Memory    int
-	DiskSpace int
+	CPU        int
+	Memory     int
+	DiskSpace  int
+	ChargeType string
 
 	PrivateIPOnly     bool
 	PrivateIPAddress  string
@@ -33,13 +34,14 @@ type Driver struct {
 }
 
 const (
-	defaultTimeout   = 1 * time.Second
-	defaultCPU       = 1
-	defaultMemory    = 1024
-	defaultDiskSpace = 20000
-	defaultRegion    = "cn-north-03"
-	defaultRetries   = 10
-	defaultImageId   = "uimage-5yt2b0" // we use CentOS 7.0 default
+	defaultTimeout    = 1 * time.Second
+	defaultCPU        = 1
+	defaultMemory     = 1024
+	defaultDiskSpace  = 20
+	defaultRegion     = "cn-north-03"
+	defaultChargeType = "Month"
+	defaultRetries    = 10
+	defaultImageId    = "uimage-5yt2b0" // we use CentOS 7.0 default
 )
 
 func NewDriver(hostName, artifactPath string) *Driver {
@@ -76,11 +78,6 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 			Value: "",
 		},
 		mcnflag.StringFlag{
-			Name:  "ucloud-user-password",
-			Usage: "Password of ucloud user",
-			Value: "",
-		},
-		mcnflag.StringFlag{
 			Name:   "ucloud-region",
 			Usage:  "Region of ucloud idc",
 			Value:  "cn-north-03",
@@ -92,9 +89,34 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 			Value: "root",
 		},
 		mcnflag.IntFlag{
+			Name:  "ucloud-cpu-core",
+			Usage: "Number of CPU cores,default is 1",
+			Value: defaultCPU,
+		},
+		mcnflag.IntFlag{
+			Name:  "ucloud-memory-size",
+			Usage: "Size of memory, unit(MB), default 1024M",
+			Value: defaultMemory,
+		},
+		mcnflag.IntFlag{
+			Name:  "ucloud-disk-space",
+			Usage: "Disk size, unit(GB),default is 20G",
+			Value: defaultDiskSpace,
+		},
+		mcnflag.StringFlag{
+			Name:  "ucloud-charge-type",
+			Usage: "How to pay for, you can chose from (Year,Month,Dynamic,Trial),default is Month",
+			Value: defaultChargeType,
+		},
+		mcnflag.IntFlag{
 			Name:  "ucloud-ssh-port",
 			Usage: "SSH port",
 			Value: 22,
+		},
+		mcnflag.StringFlag{
+			Name:  "ucloud-user-password",
+			Usage: "Password of ucloud user, random password will be used if not set",
+			Value: "",
 		},
 		mcnflag.BoolFlag{
 			Name:  "ucloud-private-address-only",
@@ -124,7 +146,17 @@ func (d *Driver) GetSSHUsername() string {
 	return d.SSHUser
 }
 
+func (d *Driver) setDefaultConfig() {
+	d.Memory = defaultMemory
+	d.CPU = defaultCPU
+	d.ChargeType = defaultChargeType
+	d.DiskSpace = defaultDiskSpace
+	d.Region = defaultRegion
+	d.ImageId = defaultImageId
+}
+
 func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
+	d.setDefaultConfig()
 	region, err := validateUCloudRegion(flags.String("ucloud-region"))
 	if err != nil {
 		return err
@@ -148,6 +180,10 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 		image = defaultImageId
 	}
 	d.ImageId = image
+	d.CPU = flags.Int("ucloud-cpu-core")
+	d.Memory = flags.Int("ucloud-memory-size")
+	d.DiskSpace = flags.Int("ucloud-disk-space")
+	d.ChargeType = flags.String("ucloud-chargetype")
 
 	d.PrivateIPOnly = flags.Bool("ucloud-private-address-only")
 	d.SecurityGroupName = flags.String("ucloud-security-group")
@@ -157,7 +193,7 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 		d.SSHUser = "root"
 	}
 	d.Password = flags.String("ucloud-user-password")
-	d.SSHPort = 22
+	d.SSHPort = flags.Int("ucloud-ssh-port")
 
 	d.SwarmMaster = flags.Bool("swarm-master")
 	d.SwarmHost = flags.String("swarm-host")
@@ -167,6 +203,15 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 }
 
 func (d *Driver) PreCreateCheck() error {
+	if d.CPU < 1 || d.CPU > 16 {
+		return fmt.Errorf("CPU cores must be in set of (1,2,4,8,16)")
+	}
+	if d.Memory < 1024 || d.Memory > 65536 {
+		return fmt.Errorf("Memory must be in range of [2048, 65536) with step of 2048MB, you can set 1024 in beijing-BGP-C")
+	}
+	if d.DiskSpace > 1000 {
+		return fmt.Errorf("Disk space must in range of [0, 1000) with step of 10GB")
+	}
 	return nil
 }
 
