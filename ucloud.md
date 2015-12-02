@@ -38,7 +38,12 @@ $ docker-machine create --driver ucloud --ucloud-public-key <public-key> --uclou
  -  `--ucloud-security-group                    UCloud security group`
  -  `--ucloud-ssh-port  						SSH port`
  -  `--ucloud-ssh-user      					SSH user`
- -  `--ucloud-user-password 					Password of ucloud user`
+ -  `--ucloud-user-password 					Password of ucloud user,random password will be used if not set`
+ -  `--ucloud-charge-type            			How to pay for, you can chose from (Year,Month,Dynamic,Trial),default is Month`
+ -  `--ucloud-cpu-core  						Number of CPU cores,default is 1`
+ -  `--ucloud-disk-space    					Disk size, unit(GB),default is 20G`
+ -  `--ucloud-memory-size        				Size of memory, unit(MB), default 1024M`
+
 
 By default, the UCloud machine driver will use image of CentOS 7.0.
 
@@ -56,3 +61,7 @@ Environment variables and default values:
 | `--ucloud-ssh-port`                 | -                       | `22`             |
 | `--ucloud-ssh-user`                 | -                       | `root`           |
 | `--ucloud-user-password`            | -                       | -                |
+| `--ucloud-charge-type`              | -                       |  `Month`         |
+| `--ucloud-cpu-core   `              | -                       |  `1`             |
+| `--ucloud-disk-space `              | -                       |  `20G`           |
+| `--ucloud-memory-size`              | -                       |  `1024M`         |

@@ -44,7 +44,7 @@ $ docker-machine create -d ucloud --ucloud-public-key=<public-key> --ucloud-priv
 for example,
 
 ```
-$ ./docker-machine_darwin-amd64 create -d ucloud ucloud-machine
+$ ./docker-machine create -d ucloud ucloud-machine
 Running pre-create checks...
 Creating machine...
 Waiting for machine to be running, this may take a few minutes...
@@ -60,7 +60,7 @@ To see how to connect Docker to this machine, run: docker-machine_darwin-amd64 e
 After run this command, a machine with name `ucloud-machine` is created.
 
 ```
-$ ./docker-machine_darwin-amd64 ls
+$ ./docker-machine ls
 NAME             ACTIVE   DRIVER   STATE     URL                        SWARM
 ucloud-machine   -        ucloud   Running   tcp://123.59.66.163:2376
 ```
