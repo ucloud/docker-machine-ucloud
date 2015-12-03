@@ -31,6 +31,13 @@ func validateUCloudRegion(region string) (string, error) {
 	return "", errInvalidRegion
 }
 
+func validPort(port int) bool {
+	if port < 1 || port > 65535 {
+		return false
+	}
+
+	return true
+}
 func generateRandomPassword(n int) string {
 	rand.Seed(time.Now().UnixNano())
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#$%^&*()_+}{:?><")

@@ -380,14 +380,20 @@ func (d *Driver) configureSecurityGroup() error {
 	log.Debugf("groupId:%d", groupId)
 	if groupId == 0 {
 		log.Infof("security group is not found, create a new one")
+		rule := []string{"TCP|22|0.0.0.0/0|ACCEPT|50",
+			"TCP|3389|0.0.0.0/0|ACCEPT|50",
+			"TCP|2376|0.0.0.0/0|ACCEPT|50",
+		}
+		if d.SwarmMaster && validPort(swarmPort) {
+			swarmRule := fmt.Sprintf("TCP|%d|0.0.0.0/0|ACCEPT|50", swarmPort)
+			rule = append(rule, swarmRule)
+		}
 
 		securityGroupParams := unet.CreateSecurityGroupParams{
 			Region:      d.Region,
 			GroupName:   "docker-machine",
 			Description: "docker machine to open 2379 and 22 port of tcp",
-			Rule: []string{"TCP|22|0.0.0.0/0|ACCEPT|50",
-				"TCP|3389|0.0.0.0/0|ACCEPT|50",
-				"TCP|2376|0.0.0.0/0|ACCEPT|50"},
+			Rule:        rule,
 		}
 		_, err := d.getUNetService().CreateSecurityGroup(&securityGroupParams)
 		if err != nil {

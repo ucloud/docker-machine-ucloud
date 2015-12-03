@@ -2,6 +2,8 @@ package ucloud
 
 import (
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,11 +46,15 @@ const (
 	defaultImageId    = "uimage-5yt2b0" // we use CentOS 7.0 default
 )
 
+var (
+	swarmPort = 3376
+)
+
 func NewDriver(hostName, artifactPath string) *Driver {
 	return &Driver{
 		BaseDriver: &drivers.BaseDriver{
 			MachineName: hostName,
-			//			ArtifactPath: artifactPath,
+			//ArtifactPath: artifactPath,
 		},
 		Region:    defaultRegion,
 		Memory:    defaultMemory,
@@ -155,6 +161,10 @@ func (d *Driver) setDefaultConfig() {
 	d.ImageId = defaultImageId
 }
 
+func (d *Driver) isSwarmMaster() bool {
+	return d.SwarmMaster
+}
+
 func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	d.setDefaultConfig()
 	region, err := validateUCloudRegion(flags.String("ucloud-region"))
@@ -198,6 +208,21 @@ func (d *Driver) SetConfigFromFlags(flags drivers.DriverOptions) error {
 	d.SwarmMaster = flags.Bool("swarm-master")
 	d.SwarmHost = flags.String("swarm-host")
 	d.SwarmDiscovery = flags.String("swarm-discovery")
+
+	if d.isSwarmMaster() {
+		u, err := url.Parse(d.SwarmHost)
+		if err != nil {
+			return fmt.Errorf("error parsing swarm host: %s", err)
+		}
+
+		parts := strings.Split(u.Host, ":")
+		port, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return err
+		}
+
+		swarmPort = port
+	}
 
 	return nil
 }
