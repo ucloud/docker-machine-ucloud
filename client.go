@@ -9,6 +9,7 @@ import (
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/mcnutils"
 	"github.com/docker/machine/libmachine/ssh"
+	"github.com/docker/machine/version"
 	"github.com/ucloud/ucloud-sdk-go/service/uhost"
 	"github.com/ucloud/ucloud-sdk-go/service/unet"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
@@ -27,6 +28,9 @@ func (d *Driver) newConfig() *ucloud.Config {
 			PrivateKey: d.PrivateKey,
 		},
 		Region: d.Region,
+		HTTPHeader: map[string]string{
+			"User-Agent": "docker-machine/" + version.Version,
+		},
 	}
 }
 
