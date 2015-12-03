@@ -8,8 +8,8 @@ docker-machine-ucloud is a plugin of docker-machine for UCloud. It requires Dock
 
 You could install run docker-machine-driver-ucloud as following steps.
 
-First, docker-machine v0.5.0 rc2 is required, documentation for how to install `docker-machine`
-[is available here](https://github.com/docker/machine/releases/tag/v0.5.0-rc2#Installation).
+First, docker-machine v0.5.2 is required, documentation for how to install `docker-machine`
+[is available here](https://github.com/docker/machine/releases/tag/v0.5.2#Installation).
 
 or you can install `docker-machine` from source code by running these commands
 ```

@@ -7,11 +7,11 @@ docker-machine-ucloud是由[UCloud](https://www.ucloud.cn)提供的`docker-machi
 `docker-machine-ucloud`的安装主要有两种方式：
 ### 1. 直接下载binary
 
-在https://github.com/ucloud/docker-machine-ucloud/releases/ 可以找到release版本的信息，当前为`docker-machine-ucloud-v0.5.0-rc3`, 目前仅仅提供linux系统的安装包。
+在https://github.com/ucloud/docker-machine-ucloud/releases/ 可以找到release版本的信息，当前为`docker-machine-ucloud-v0.5.2`, 目前仅仅提供linux系统的安装包。
 
 安装包下载后需要copy到$PATH目录下，可以通过以下命令安装
 ```
-$ curl -L https://github.com/ucloud/docker-machine-ucloud/releases/download/v0.5.0-rc3/docker-machine_linux-amd64_v0.5.0-ucloud.tar.gz > machine.tar.gz &&
+$ curl -L https://github.com/ucloud/docker-machine-ucloud/releases/download/v0.5.2/docker-machine_linux-amd64_v0.5.2-ucloud.tar.gz > machine.tar.gz &&
 $ tar -xzf machine.tar.gz && rm machine.tar.gz
 $ mv docker-machine* /usr/local/bin/
 ```
@@ -44,15 +44,15 @@ $ ll /usr/local/bin
 
    要编译UCloud的插件，依赖于
    * golang 1.4.3+
-   * docker-machine v0.5.0rc2
+   * docker-machine v0.5.2
+   * ucloud/ucloud-sdk-go@d715fb9ddc2cf55214a3167fdb853f650250f1d6 之后版本
 
 #### 安装docker-machine
    docker-machine的安装主要有两种方法，直接下载编译好的二进制或者通过源码安装:
    
    1. 直接下载
    
-    可以参照docker-machine的官方[安装文档](https://docs.docker.com/machine/install-machine/)。
-    docker-machine 0.5版本目前还未正式release，可以参照docker/machine的[release文档](https://github.com/docker/machine/releases/tag/v0.5.0-rc3)安装。
+    可以参照docker-machine的官方[安装文档](https://docs.docker.com/machine/install-machine/)，可以参照docker/machine的[release文档](https://github.com/docker/machine/releases/tag/v0.5.2)安装。
     
    2. 源码安装
 
