@@ -38,12 +38,12 @@ type Driver struct {
 const (
 	defaultTimeout    = 1 * time.Second
 	defaultCPU        = 1
-	defaultMemory     = 1024
+	defaultMemory     = 2048
 	defaultDiskSpace  = 20
 	defaultRegion     = "cn-north-03"
 	defaultChargeType = "Month"
 	defaultRetries    = 10
-	defaultImageId    = "uimage-5yt2b0" // we use CentOS 7.0 default
+	defaultImageId    = "uimage-aaee5e" // we use CentOS 7.0 default
 )
 
 var (
@@ -101,17 +101,17 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 		},
 		mcnflag.IntFlag{
 			Name:  "ucloud-memory-size",
-			Usage: "Size of memory, unit(MB), default 1024M",
+			Usage: "Size of memory, unit(MB), default 2048M",
 			Value: defaultMemory,
 		},
 		mcnflag.IntFlag{
 			Name:  "ucloud-disk-space",
-			Usage: "Disk size, unit(GB),default is 20G",
+			Usage: "Disk size, unit(GB), default is 20G",
 			Value: defaultDiskSpace,
 		},
 		mcnflag.StringFlag{
 			Name:  "ucloud-charge-type",
-			Usage: "How to pay for, you can chose from (Year,Month,Dynamic,Trial),default is Month",
+			Usage: "How to pay for, you can chose from (Year,Month,Dynamic,Trial), default is Month",
 			Value: defaultChargeType,
 		},
 		mcnflag.IntFlag{
