@@ -32,7 +32,7 @@ are needed to create machine. Both options and environment variable are availabl
 
 ```
 $ export UCLOUD_PUBLIC_KEY=<public-key-of-ucloud-api>
-$ export UCLOUD_PUBLIC_KEY=<private-key-of-ucloud-api>
+$ export UCLOUD_PRIVATE_KEY=<private-key-of-ucloud-api>
 $ docker-machine create -d ucloud <machine-name>
 ```
 or  run 
